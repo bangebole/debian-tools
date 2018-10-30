@@ -1,0 +1,33 @@
+quilt程序是 Debian 打包过程中采用的补丁管理工具。
+参考链接：https://www.debian.org/doc/manuals/maint-guide/modify.zh-cn.html
+１．安装准备
+#添加dquilt命令
+vim ~/.bashrc
+	alias dquilt="quilt --quiltrc=${HOME}/.quiltrc-dpkg"
+complete -F _quilt_completion -o filenames dquilt
+sources ~/.bashrc
+#创建~/.quiltrc-dpkg
+vim ~/.quiltrc-dpkg
+d=. ; while [ ! -d $d/debian -a $(readlink -e $d) != / ]; do d=$d/..; done
+if [ -d $d/debian ] && [ -z $QUILT_PATCHES ]; then
+    # if in Debian packaging tree with unset $QUILT_PATCHES
+    QUILT_PATCHES="debian/patches"
+    QUILT_PATCH_OPTS="--reject-format=unified"
+    QUILT_DIFF_ARGS="-p ab --no-timestamps --no-index --color=auto"
+    QUILT_REFRESH_ARGS="-p ab --no-timestamps --no-index"
+    QUILT_COLORS="diff_hdr=1;32:diff_add=1;34:diff_rem=1;31:diff_hunk=1;33:diff_ctx=35:diff_cctx=33"
+    if ! [ -d $d/debian/patches ]; then mkdir $d/debian/patches; fi
+fi
+２．操作要点
+##以openssh为例:
+#获取debian-src
+apt-get source openssh
+cd openssh(dir)
+dquilt new (新添加的补丁名)
+dquilt add (将要修改的文件)
+进行修改
+#更新
+dquilt refresh
+#添加描述
+dquilt header -e
+#在debian/patchs目录下就会出现新添加的补丁文件
