@@ -1,0 +1,22 @@
+debootstrap:用于构建根文件系统(rootfs)
+参考链接：
+https://wiki.debian.org/Debootstrap/
+https://www.jianshu.com/p/02db477bae1b
+1.环境准备:debian系统环境(宿主系统)，debootstrap工具,磁盘（分区）
+#分区准备
+cfdisk /dev/sdX	//分区，一个系统分区，一个交换分区
+mkfs -t ext4 /dev/sdXX	//格式化系统分区
+mkswap /dev/sdXX	//格式化交换分区
+#构建rootfs
+sudo mount /dev/sdXX /mnt
+sudo debootstrap --no-check-gpg --include=locales,busybox,initramfs-tools,sudo,vim,psmisc,network-manager,linux-image-amd64,grub-pc --components=main,non-free,contrib --arch=amd64 stretch  /mnt http://mirrors.163.com/debian
+#chroot
+sudo chroot "/mnt" /bin/bash
+#修改配置
+passwd root	//添加root密码
+vim fstab
+	/dev/sda1     /            ext4    defaults            1     1
+	/dev/sda2     swap         swap     pri=1               0     0
+#更新grub
+sudo umount /dev/sdXX
+update-grub
