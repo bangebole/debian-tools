@@ -1,0 +1,76 @@
+#参考链接
+
+#介绍
+#这部分综合记录了一些构建本地软件源的工具集合
+#构建本地软件源方便对debina-iso的定制（修改源站的deb包，重新生成规则描述信息，比如需要定制个人的一套桌面系统，这就无法避免要重新修改源码，生成deb包，将这样的一套新deb包做成iso中的pool,生成描述信息，或者根据系统环境构建一个专用定制系统的镜像站，像官方那样维护软件的更新，进行系统的定制...），这里主要总结软件仓库站点知识
+
+#涉及的工具
+#reprepro、apt-ftparchive、(aptly)、rng-tools、nginx、apt-key、其他系统工具
+
+#1
+#基本环境（准备包，开放端口，生成gpg,所需软件安装(apt-get install ...)）
+#整备包
+cp `find pool/ -name *.deb` deb/		//将光盘pool池的deb包整合到deb目录
+#安装、配置nginx
+vim /etc/nginx/sites-available/default
+root /home/li/1106;	//修改站点目录
+
+location / {
+	autoindex on;	//添加站点目录检索
+systemctl restart nginx.service	//重启服务
+
+#生成gpg
+apt-get install rng-tools
+/usr/sbin/rngd -r /dev/urandom //虚拟机环境要这样启用或者修改systemd服务
+
+cp ... /etc/systemd/system
+ExecStart=/sbin/rngd -f -r /dev/urandom //修改systemd服务
+systemctl daemon-reload
+systemctl restart rngd
+
+gpg --gen-key 	//注册gpg
+
+gpg --list-keys //查看gpg
+
+gpg --output keyFile(导出的gpg文件) --armor --export XXX	//使用镜像站需要
+
+apt-key add keyFile
+vim /etc/apt/sources.list 
+deb http://IP ./
+apt-get update
+
+#2.1(apt-ftparchive)
+#生成站点包信息(Packages.gz、ReleaseI...)
+cd 	//切换到包目录
+apt-ftparchive packages . > Packages
+gzip -c Packages > Packages.gz
+apt-ftparchive release . > Release
+
+
+gpg --clearsign -o InRelease Release
+gpg -abs -o Release.gpg Release
+//或者使用：apt-ftparchive generate config-deb 生成Packages(参考debian官方链接)
+
+#2.2(reprepro)
+export codename=stretch
+
+mkdir conf
+
+cat > conf/distributions << EOF
+Codename: $codename
+Description: official main repository
+Architectures: i386 amd64
+Components: main contrib non-free
+UDebComponents: main
+Contents: .gz
+Suite: stable
+EOF
+
+reprepro includedeb $codename *.deb
+reprepro includeudeb $codename *.udeb
+
+#2.3(aptly)参见同级目录debian-customization仓库
+
+#
+zcat Packages.gz | grep Filename | awk '{print $2}'  //取输出信息某个熟悉
+sed -i "s@^@.../@g" ... //追加信息...到...行首
