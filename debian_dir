@@ -1,0 +1,29 @@
+参考链接：https://www.debian.org/doc/manuals/maint-guide/dreq.zh-cn.html
+https://wiki.debian.org/DebugPackage
+#control:控制信息，源码和deb包，基本信息、编译依赖
+找出编译软件包所需的软件包，使用:
+dpkg-depcheck -d ./configure
+apt-get build-dep (软件包名)	//安装编译deb包依赖关系
+apt-file search dpkg-depcheck	//查找命令所属包
+objdump -p /usr/bin/sshd | grep NEEDED	//查询编译调用链接库
+dpkg -S libwrap.so.0	//查询链接库所属包
+#copyright:包含上游的版本以及许可信息
+#changelog:被dpkg和其他程序用以解析版本号和信息、适用的发行版本、紧急程度(更新软件包)
+#rules(另一个Makefile):后续行以TAB开头,空格、#注释，可以添加flags
+#在rules文件中设置调试，可以分析rules文件背后发生了什么
+export DH_OPTIONS=-v
+#dh $@:
+#debian/rules clean 
+#debian/rules build
+#fakeroot debian/rules binary
+#fakeroot debian/rules binary-arch
+#附加 -a 参数于每个命令后
+#fakeroot debian/rules binary-indep
+#dh_strip、dh_makeshlibs 和 dh_shlibdeps 除外，其他命令则均附加-i 选项
+#添加调试(参考链接2)(注意格式，不然会提示在control目录添加giblib1-dbg包信息):
+.PHONY: override_dh_strip
+	override_dh_strip:
+		dh_strip --dbg-package=giblib1-dbg
+#生成调试包增加
+	dh_strip -pfoo --dbg-package=foo-dbg
+	dh_strip -pbar --dbg-package=bar-dbg
