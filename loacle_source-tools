@@ -1,4 +1,11 @@
 #参考链接
+https://wiki.debian.org/DebianRepository/Setup?action=show&redirect=HowToSetupADebianRepository
+https://wiki.debian.org/DebianRepository/SetupWithReprepro
+http://www.fabreg.it/reprepro-repository-debian-43/
+https://www.cnblogs.com/silvermagic/p/7665841.html
+https://www.tuicool.com/articles/uaiURzF
+http://blog.itpub.net/26355921/viewspace-1248091/(gpg)
+
 
 #介绍
 #这部分综合记录了一些构建本地软件源的工具集合
@@ -32,7 +39,12 @@ gpg --gen-key 	//注册gpg
 
 gpg --list-keys //查看gpg
 
-gpg --output keyFile(导出的gpg文件) --armor --export XXX	//使用镜像站需要
+gpg --output keyFile(导出的gpg文件) --armor --export XXX	//导出创建的gpg,使用镜像站需要
+
+//gpg --send-keys [用户ID] --keyserver hkp://subkeys.pgp.net 上传本地公钥
+//gpg --keyserver hkp://subkeys.pgp.net --search-keys [用户ID]
+//apt-key list  //查看本地已经添加的gpg
+//apt-key del <key-id>  //删除gpg
 
 apt-key add keyFile
 vim /etc/apt/sources.list 
@@ -52,25 +64,31 @@ gpg -abs -o Release.gpg Release
 //或者使用：apt-ftparchive generate config-deb 生成Packages(参考debian官方链接)
 
 #2.2(reprepro)
-export codename=stretch
+gpg --list-keys	//获取<key-id>
 
 mkdir conf
 
 cat > conf/distributions << EOF
-Codename: $codename
+Codename: stretch
 Description: official main repository
 Architectures: i386 amd64
 Components: main contrib non-free
 UDebComponents: main
 Contents: .gz
 Suite: stable
+SignWith: <key-id>
 EOF
 
-reprepro includedeb $codename *.deb
-reprepro includeudeb $codename *.udeb
+reprepro includedeb stretch *.deb
+reprepro includeudeb stretch *.udeb	//添加包
 
+reprepro list stretch	//查看已添加包
+
+reprepro remove stretch <Packge Name>	//移除包
+
+wget -O - http://192.168.22.213/deb/keyFile | sudo apt-key add -
 #2.3(aptly)参见同级目录debian-customization仓库
 
-#
+#其他笔记
 zcat Packages.gz | grep Filename | awk '{print $2}'  //取输出信息某个熟悉
 sed -i "s@^@.../@g" ... //追加信息...到...行首
